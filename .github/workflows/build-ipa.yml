@@ -1,7 +1,33 @@
+name: Build Flutter IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Generate platform folders if missing
+        run: |
+          if [ ! -d "ios" ]; then
+            flutter create . --org com.example --project-name flame_game_test
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
       - name: Build iOS app (unsigned)
         run: |
-          flutter build ios --release --no-codesign \
-            --config-only
+          flutter build ios --release --no-codesign --config-only
           xcodebuild -workspace ios/Runner.xcworkspace \
             -scheme Runner \
             -configuration Release \
@@ -19,3 +45,9 @@
           cd build/ipa
           zip -r ../FlameGameTest.ipa Payload
           cd ../..
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlameGameTest-ipa
+          path: build/FlameGameTest.ipa
